@@ -140,7 +140,7 @@ private fun LoanApp(db: LoanDatabase) {
                     try {
                         val current = dao.admin()
                         if (current == null) {
-                            if (password.length < 6) throw UserFacingException("Password কমপক্ষে ৬ অক্ষরের must be")
+                            if (password.length < 6) throw UserFacingException("Password must be at least 6 characters")
                             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
                             dao.saveAdmin(
                                 AdminEntity(
@@ -165,7 +165,7 @@ private fun LoanApp(db: LoanDatabase) {
                             if (hashPassword(password, salt) == current.passwordHash) {
                                 loggedIn = true
                                 error = ""
-                            } else error = "Password correct নয়"
+                            } else error = "Incorrect password"
                         }
                     } catch (e: CancellationException) {
                         throw e
@@ -233,7 +233,7 @@ private fun AuthScreen(firstRun: Boolean, error: String, onSubmit: (String, Stri
             PremiumTextField(
                 password,
                 { password = it },
-                if (firstRun) "Password (কমপক্ষে ৬ অক্ষর)" else "Password",
+                if (firstRun) "Password (at least 6 characters)" else "Password",
                 visualTransformation = PasswordVisualTransformation()
             )
             AnimatedVisibility(visible = error.isNotBlank()) {
@@ -254,7 +254,7 @@ private fun AuthScreen(firstRun: Boolean, error: String, onSubmit: (String, Stri
             }
             Spacer(Modifier.height(24.dp))
             PremiumPrimaryButton(
-                text = if (firstRun) "Account Create করুন" else "Sign in",
+                text = if (firstRun) "Create Account" else "Sign in",
                 onClick = { onSubmit(username, password) },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -331,7 +331,7 @@ private fun MainShell(db: LoanDatabase, onLogout: () -> Unit) {
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            "Offline Loan ব্যবস্থাপনা",
+                            "Offline Loan Management",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -443,7 +443,7 @@ private fun MainShell(db: LoanDatabase, onLogout: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Loanের তালিকা",
+                                "Loan List",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.weight(1f)
@@ -516,7 +516,7 @@ private fun MainShell(db: LoanDatabase, onLogout: () -> Unit) {
                             throw e
                         } catch (e: Exception) {
                             logFailure("create borrower", e)
-                            borrowerError = e.userMessage("Member Save করা যায়নি। Please try again।")
+                            borrowerError = e.userMessage("Could not save member. Please try again.")
                         } finally {
                             borrowerSaving = false
                         }
@@ -580,10 +580,10 @@ private fun MainShell(db: LoanDatabase, onLogout: () -> Unit) {
                             throw e
                         } catch (e: ArithmeticException) {
                             logFailure("create loan (arithmetic)", e)
-                            loanError = "Amount বা হার অনেক বড়। correct মান দিন।"
+                            loanError = "Amount or rate is too large. Enter a valid value."
                         } catch (e: Exception) {
                             logFailure("create loan", e)
-                            loanError = e.userMessage("Loan Create করা যায়নি। ফর্মের তথ্য যাচাই করে Please try again।")
+                            loanError = e.userMessage("Could not create loan. Check the form and try again.")
                         } finally {
                             loanSaving = false
                         }
@@ -611,8 +611,8 @@ private fun DashboardScreen(
     ) {
         item {
             HeroCard(
-                title = "স্বাগতম, $ngoName",
-                subtitle = "আজকের সারাংশ · ${today()}"
+                title = "Welcome, $ngoName",
+                subtitle = "Today's Summary · ${today()}"
             ) {
                 Box(
                     Modifier
@@ -639,12 +639,12 @@ private fun DashboardScreen(
         }
         item {
             GlassCard(elevation = 3.dp) {
-                Text("Total Outstanding (Interestসহ)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Total Outstanding (Including Interest)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
                 Text(money(summary.outstandingPoisha), style = MoneyStyleLarge, color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Total Payable ${money(summary.totalPayablePoisha)} · Advance Payment ${money(summary.advancePoisha)} (Cancel Loan ও Cancel পেমেন্ট বাদে)",
+                    "Total Payable ${money(summary.totalPayablePoisha)} · Advance Payment ${money(summary.advancePoisha)} (excluding cancelled loans and payments)",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -654,16 +654,16 @@ private fun DashboardScreen(
             SectionHeader("Quick actions")
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickActionChip("Member যোগ", onAddMember)
+                QuickActionChip("Add Member", onAddMember)
                 QuickActionChip("New Loan", onCreateLoan)
             }
         }
         item {
-            SectionHeader("Recent Loan", "Latest Create করা Loanগুলো")
+            SectionHeader("Recent Loan", "Recently Created Loans")
         }
         if (loans.isEmpty()) {
             item {
-                GlassCard { EmptyStateView("No কোনো Loan Create হয়নি। Firstে Member Add, তারপর New Loan Create করুন।") }
+                GlassCard { EmptyStateView("No loans created yet. Add a member first, then create a new loan.") }
             }
         } else {
             items(loans.take(8), key = { it.id }) { l ->
@@ -689,7 +689,7 @@ private fun DashboardScreen(
         }
         item {
             Text(
-                "হিসাব যাচাইয়ের Notes: advance allocation ও Cancel Loanের সমন্বয়ের জন্য Loanের বিস্তারিত View।",
+                "For reconciliation of advances and cancelled loans, review the loan details.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -721,7 +721,7 @@ private fun BorrowerFormDialog(
                 PremiumTextField(name, { name = it }, "Name *")
                 PremiumTextField(phone, { phone = it }, "Phone")
                 PremiumTextField(address, { address = it }, "Address")
-                PremiumTextField(nid, { nid = it }, "জাতীয় Detailsপত্র")
+                PremiumTextField(nid, { nid = it }, "National ID")
                 PremiumTextField(notes, { notes = it }, "Notes", singleLine = false)
                 if (shownError.isNotBlank()) {
                     Text(shownError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -730,7 +730,7 @@ private fun BorrowerFormDialog(
         },
         confirmButton = {
             PremiumPrimaryButton("Save", {
-                if (name.isBlank()) localError = "Memberের Name Enter"
+                if (name.isBlank()) localError = "Enter the member's name"
                 else {
                     localError = ""
                     onSave(name, phone, address, nid, notes)
@@ -797,11 +797,11 @@ private fun LoanFormDialog(
                         }
                     }
                 }
-                PremiumTextField(principal, { principal = it }, "Principal Loan (টাকা)")
-                PremiumTextField(rate, { rate = it }, "Interestের হার (%)")
+                PremiumTextField(principal, { principal = it }, "Loan Principal (Amount)")
+                PremiumTextField(rate, { rate = it }, "Interest Rate (%)")
                 PremiumTextField(term, { term = it }, "Term (months)")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Interestের ধরন:", style = MaterialTheme.typography.bodyMedium)
+                    Text("Interest Type:", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.width(8.dp))
                     FilterChip(
                         selected = period == InterestPeriod.ANNUAL,
@@ -815,8 +815,8 @@ private fun LoanFormDialog(
                         label = { Text("Full term") }
                     )
                 }
-                PremiumTextField(loanDate, { loanDate = it }, "Loanের Date (YYYY-MM-DD)")
-                PremiumTextField(firstDue, { firstDue = it }, "First Installmentর Date")
+                PremiumTextField(loanDate, { loanDate = it }, "Loan Date (YYYY-MM-DD)")
+                PremiumTextField(firstDue, { firstDue = it }, "First Installment Date")
                 PremiumTextField(notes, { notes = it }, "Notes", singleLine = false)
                 if (preview != null) {
                     GlassCard(elevation = 0.dp) {
@@ -834,12 +834,12 @@ private fun LoanFormDialog(
                 localError = ""
                 try {
                     if (borrowers.isEmpty()) throw UserFacingException("first Member Add")
-                    if (borrowerId <= 0) throw UserFacingException("Member নির্বাচন করুন")
+                    if (borrowerId <= 0) throw UserFacingException("Select a member")
                     val p = InputValidation.takaToPoisha(principal, "Principal Loan")
                     val r = InputValidation.rate(rate)
                     val tm = InputValidation.termMonths(term)
-                    val ld = InputValidation.date(loanDate, "Loanের Date")
-                    val fd = InputValidation.date(firstDue, "First Installmentর Date")
+                    val ld = InputValidation.date(loanDate, "Loan Date")
+                    val fd = InputValidation.date(firstDue, "First Installment Date")
                     if (fd.isBefore(ld)) throw UserFacingException("First installment date cannot be before the loan date")
                     onSave(borrowerId, p, r.toPlainString(), period, tm, ld.toString(), fd.toString(), notes.trim())
                 } catch (e: UserFacingException) {
@@ -882,10 +882,10 @@ private fun BorrowerDetailScreen(
             PremiumPrimaryButton("New Loan Create", onCreateLoan, Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(16.dp))
-        Text("এই Memberের Loan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text("Member Loans", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         if (loans.isEmpty()) {
-            EmptyStateView("এই Memberের কোনো Loan নেই")
+            EmptyStateView("This member has no loans")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(loans, key = { it.id }) { loan ->
@@ -939,7 +939,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
         TextButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("Loanের তালিকা")
+            Text("Loan List")
         }
         Text(loan.loanCode, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(
@@ -983,7 +983,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
             }
         }
         Spacer(Modifier.height(20.dp))
-        Text("Installmentর সময়সূচি", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text("Installment Schedule", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         installments.forEach { inst ->
             val remaining = (inst.dueAmountPoisha - inst.allocatedPoisha).coerceAtLeast(0)
@@ -991,7 +991,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                 remaining == 0L -> "Paid"
                 inst.allocatedPoisha > 0 -> "Partial"
                 inst.dueDate < today() -> "Outstanding"
-                else -> "অPaid"
+                else -> "Unpaid"
             }
             GlassCard(elevation = 1.dp, modifier = Modifier.padding(vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1008,17 +1008,17 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
             }
         }
         Spacer(Modifier.height(20.dp))
-        Text("পেমেন্ট Payment", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text("Payments", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         GlassCard(elevation = 2.dp) {
-            PremiumTextField(amount, { amount = it }, "Amount (টাকা)")
+            PremiumTextField(amount, { amount = it }, "Amount")
             Spacer(Modifier.height(10.dp))
             PremiumTextField(payDate, { payDate = it }, "Date (YYYY-MM-DD)")
             Spacer(Modifier.height(10.dp))
             PremiumTextField(notes, { notes = it }, "Notes")
             Spacer(Modifier.height(16.dp))
             PremiumPrimaryButton(
-                text = "পেমেন্ট Save",
+                text = "Save Payment",
                 loading = saving,
                 onClick = {
                     if (!saving) {
@@ -1026,7 +1026,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                         message = ""
                         scope.launch {
                             try {
-                                val poisha = InputValidation.takaToPoisha(amount, "পেমেন্টের Amount")
+                                val poisha = InputValidation.takaToPoisha(amount, "Payment Amount")
                                 repo.recordPayment(loan.id, poisha, payDate, notes)
                                 amount = ""
                                 notes = ""
@@ -1037,7 +1037,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                             } catch (e: Exception) {
                                 logFailure("record payment", e)
                                 messageOk = false
-                                message = e.userMessage("পেমেন্ট Save করা যায়নি। Please try again।")
+                                message = e.userMessage("Could not save payment. Please try again.")
                             } finally {
                                 saving = false
                             }
@@ -1057,7 +1057,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
         }
         Spacer(Modifier.height(12.dp))
         TextButton(onClick = { showHistory = !showHistory }) {
-            Text(if (showHistory) "পেমেন্ট ইতিহাস Hide" else "পেমেন্ট ইতিহাস View")
+            Text(if (showHistory) "Hide Payment History" else "View Payment History")
         }
         AnimatedVisibility(visible = showHistory, enter = fadeIn() + slideInVertically(), exit = fadeOut()) {
             Column {
@@ -1073,7 +1073,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                                 onClick = { cancelReason = ""; cancelError = ""; cancelTarget = p },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
-                                Text("পেমেন্ট Cancel")
+                                Text("Cancel Payment")
                             }
                         }
                     }
@@ -1084,7 +1084,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
             AlertDialog(
                 onDismissRequest = { if (!cancelling) cancelTarget = null },
                 shape = DialogShape,
-                title = { Text("পেমেন্ট Cancel করবেন?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) },
+                title = { Text("Cancel Payment?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) },
                 text = {
                     Column(
                         Modifier.verticalScroll(rememberScrollState()),
@@ -1095,11 +1095,11 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                         Text("Receipt: ${target.receiptNo} · ${target.paymentDate}", style = MaterialTheme.typography.bodyMedium)
                         Text("Amount: ${money(target.amountPoisha)}", style = MoneyStyleSmall)
                         Text(
-                            "Cancel করলে এই পেমেন্ট হিসাব থেকে বাদ যাবে এবং Remaining বৈধ পেমেন্টগুলো Date অনুযায়ী পুরনো Installment first নিয়মে পুনরায় বণ্টিত হবে। Principal Receipt ও অডিট লগ সংরক্ষিত থাকবে। এই কাজ ফেরানো যাবে না।",
+                            "Cancelling this payment removes it from the account and reallocates remaining valid payments to the oldest installments by date. The principal receipt and audit log will be retained. This action cannot be undone.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        PremiumTextField(cancelReason, { cancelReason = it }, "Cancelের কারণ *")
+                        PremiumTextField(cancelReason, { cancelReason = it }, "Cancellation Reason *")
                         if (cancelError.isNotBlank()) {
                             Text(cancelError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
@@ -1121,7 +1121,7 @@ private fun LoanDetailScreen(db: LoanDatabase, loan: LoanEntity, onBack: () -> U
                                     throw e
                                 } catch (e: Exception) {
                                     logFailure("cancel payment", e)
-                                    cancelError = e.userMessage("পেমেন্ট Cancel করা যায়নি। Please try again।")
+                                    cancelError = e.userMessage("Could not cancel payment. Please try again.")
                                 } finally {
                                     cancelling = false
                                 }
@@ -1168,12 +1168,12 @@ private fun ReportsScreen(db: LoanDatabase) {
         MetricCard("Total Principal Loan", money(summary.principalPoisha), "৳")
         MetricCard("Total Interest", money(summary.interestPoisha), "%")
         MetricCard("Total Payable (Principal + Interest)", money(summary.totalPayablePoisha), "৳")
-        MetricCard("Total আদায়", money(summary.collectedPoisha), "↓", accent = SuccessGreen)
+        MetricCard("Total Collected", money(summary.collectedPoisha), "↓", accent = SuccessGreen)
         MetricCard("Total Outstanding", money(summary.outstandingPoisha), "!", accent = GoldWarm)
         MetricCard("Advance Payment", money(summary.advancePoisha), "+", accent = SuccessGreen)
         GlassCard {
             Text(
-                "প্রতিটি Loanের correct Outstanding, advance এবং Cancel পেমেন্ট Loanের বিস্তারিত পাতায় যাচাই করুন।",
+                "Review each loan's details to verify outstanding balance, advances, and cancelled payments.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1201,7 +1201,7 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
         GlassCard(elevation = 2.dp) {
             Text("Organization Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
-            PremiumTextField(ngoName, { ngoName = it }, "NGO-এর Name")
+            PremiumTextField(ngoName, { ngoName = it }, "Organization Name")
             Spacer(Modifier.height(12.dp))
             PremiumPrimaryButton(
                 "Settings Save",
@@ -1216,7 +1216,7 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
                                 details = "NGO name updated"
                             )
                         )
-                        message = "Settings সংরক্ষিত"
+                        message = "Settings saved"
                     }
                 },
                 Modifier.fillMaxWidth()
@@ -1227,7 +1227,7 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             PremiumTextField(oldPassword, { oldPassword = it }, "Current Password", visualTransformation = PasswordVisualTransformation())
             Spacer(Modifier.height(10.dp))
-            PremiumTextField(newPassword, { newPassword = it }, "New Password (৬+ অক্ষর)", visualTransformation = PasswordVisualTransformation())
+            PremiumTextField(newPassword, { newPassword = it }, "New Password (6+ characters)", visualTransformation = PasswordVisualTransformation())
             Spacer(Modifier.height(12.dp))
             PremiumPrimaryButton(
                 "Password Change",
@@ -1235,9 +1235,9 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
                     scope.launch {
                         val admin = db.dao().admin()
                         if (admin == null || hashPassword(oldPassword, Base64.decode(admin.salt, Base64.NO_WRAP)) != admin.passwordHash) {
-                            message = "Current Password correct নয়"
+                            message = "Current Incorrect password"
                         } else if (newPassword.length < 6) {
-                            message = "New Password কমপক্ষে ৬ অক্ষর must be"
+                            message = "New Password at least 6 characters must be"
                         } else {
                             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
                             db.dao().saveAdmin(
@@ -1256,7 +1256,7 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
                             )
                             oldPassword = ""
                             newPassword = ""
-                            message = "Password পরিবর্তিত হয়েছে"
+                            message = "Password changed successfully"
                         }
                     }
                 },
@@ -1270,7 +1270,7 @@ private fun SettingsScreen(db: LoanDatabase, onLogout: () -> Unit) {
             Text("Data Backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Text(
-                "এই প্রাথমিক সংস্করণে পূর্ণ encrypted backup/restore UI No বাস্তবায়িত নয়। বাস্তব আর্থিক Data ব্যবহারের first backup/restore সম্পন্ন ও যাচাই করতে হবে।",
+                "Encrypted backup and restore are not yet available in this initial version. Complete and verify backup/restore before using real financial data.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
