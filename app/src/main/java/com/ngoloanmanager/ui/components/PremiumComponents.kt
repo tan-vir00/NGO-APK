@@ -57,7 +57,18 @@ fun GlassCard(
     ) {
         Column(
             Modifier
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape)
+                .border(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.95f), MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                    ),
+                    shape
+                )
+                .background(
+                    Brush.verticalGradient(
+                        listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface.copy(alpha = 0.985f))
+                    )
+                )
                 .padding(16.dp)
                 .animateContentSize(),
             content = content
@@ -128,20 +139,57 @@ fun HeroCard(
     Box(
         modifier
             .fillMaxWidth()
-            .shadow(6.dp, shape, clip = false, ambientColor = EmeraldPrimary.copy(0.15f), spotColor = EmeraldPrimary.copy(0.2f))
+            .shadow(12.dp, shape, clip = false, ambientColor = EmeraldPrimary.copy(0.20f), spotColor = EmeraldDeep.copy(0.28f))
             .clip(shape)
             .background(
                 Brush.linearGradient(
-                    colors = listOf(EmeraldDeep, EmeraldPrimary, EmeraldMid)
+                    colors = listOf(Color(0xFF063D32), EmeraldDeep, EmeraldPrimary, Color(0xFF22A780))
                 )
             )
-            .padding(20.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Soft glass reflections and depth, kept decorative and non-interactive.
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 28.dp, y = (-38).dp)
+                .size(164.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.015f), Color.Transparent)
+                    )
+                )
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(76.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.025f), Color.Transparent)
+                    )
+                )
+        )
+        Box(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 20.dp, bottom = 0.dp)
+                .fillMaxWidth(0.52f)
+                .height(1.dp)
+                .background(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.Transparent)))
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.36f), Color.White.copy(alpha = 0.06f))), shape)
+                .padding(22.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f))
+                Spacer(Modifier.height(6.dp))
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.88f))
             }
             trailing?.invoke()
         }
@@ -220,14 +268,15 @@ fun PremiumPrimaryButton(
         enabled = enabled && !loading,
         modifier = modifier
             .scale(scale)
-            .height(52.dp),
+            .height(52.dp)
+            .shadow(if (enabled && !loading) 5.dp else 0.dp, ButtonShape, clip = false, spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.26f)),
         shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 0.dp, focusedElevation = 4.dp, hoveredElevation = 4.dp),
         interactionSource = interaction
     ) {
         if (loading) {
