@@ -19,12 +19,12 @@ class PaymentRepository(private val db: LoanDatabase) {
     private val dao get() = db.dao()
 
     suspend fun recordPayment(loanId: Long, amountPoisha: Long, paymentDate: String, notes: String): Long {
-        if (amountPoisha <= 0) throw UserFacingException("পরিমাণ শূন্যের চেয়ে বেশি হতে হবে")
-        val date = InputValidation.date(paymentDate, "পেমেন্টের তারিখ")
+        if (amountPoisha <= 0) throw UserFacingException("Amount must be greater than zero")
+        val date = InputValidation.date(paymentDate, "Payment date")
         return db.withTransaction {
-            val loan = dao.loan(loanId) ?: throw UserFacingException("ঋণটি খুঁজে পাওয়া যায়নি")
-            if (loan.status == LOAN_STATUS_CANCELLED) throw UserFacingException("বাতিল ঋণে পেমেন্ট নেওয়া যাবে না")
-            if (date.isBefore(LocalDate.parse(loan.loanDate))) throw UserFacingException("পেমেন্টের তারিখ ঋণের তারিখের আগে হতে পারে না")
+            val loan = dao.loan(loanId) ?: throw UserFacingException("Loan not found")
+            if (loan.status == LOAN_STATUS_CANCELLED) throw UserFacingException("Cannot accept payment for a cancelled loan")
+            if (date.isBefore(LocalDate.parse(loan.loanDate))) throw UserFacingException("Payment date cannot be before the loan date")
             val receipt = "RC-${System.currentTimeMillis()}-${UUID.randomUUID().toString().take(4).uppercase()}"
             val paymentId = dao.insertPayment(
                 PaymentEntity(loanId = loanId, receiptNo = receipt, amountPoisha = amountPoisha, paymentDate = date.toString(), notes = notes.trim())
@@ -42,12 +42,12 @@ class PaymentRepository(private val db: LoanDatabase) {
 
     suspend fun cancelPayment(paymentId: Long, reason: String) {
         val cleanReason = reason.trim()
-        if (cleanReason.isEmpty()) throw UserFacingException("বাতিলের কারণ লিখুন")
-        if (cleanReason.length > 200) throw UserFacingException("বাতিলের কারণ ২০০ অক্ষরের মধ্যে লিখুন")
+        if (cleanReason.isEmpty()) throw UserFacingException("Enter a cancellation reason")
+        if (cleanReason.length > 200) throw UserFacingException("Cancellation reason must be 200 characters or fewer")
         db.withTransaction {
-            val payment = dao.payment(paymentId) ?: throw UserFacingException("পেমেন্টটি খুঁজে পাওয়া যায়নি")
-            if (payment.cancelled) throw UserFacingException("এই পেমেন্ট আগেই বাতিল করা হয়েছে")
-            if (dao.markPaymentCancelled(paymentId) != 1) throw UserFacingException("এই পেমেন্ট আগেই বাতিল করা হয়েছে")
+            val payment = dao.payment(paymentId) ?: throw UserFacingException("Payment not found")
+            if (payment.cancelled) throw UserFacingException("This payment has already been cancelled")
+            if (dao.markPaymentCancelled(paymentId) != 1) throw UserFacingException("This payment has already been cancelled")
             val loan = dao.loan(payment.loanId)
             reallocate(payment.loanId)
             dao.audit(
